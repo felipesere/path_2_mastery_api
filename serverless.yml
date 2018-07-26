@@ -1,5 +1,7 @@
 service: path-2-mastery-api
 
+frameworkVersion: ">=1.1.0 <2.0.0"
+
 plugins:
   - serverless-domain-manager
 
@@ -7,22 +9,26 @@ provider:
   name: aws
   runtime: nodejs6.10
   region: eu-west-2
+  memorySize: 512
+  timeout: 6
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+      - dynamodb:Query
+      - dynamodb:Scan
+      - dynamodb:GetItem
+      - dynamodb:PutItem
+      - dynamodb:UpdateItem
+      - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
 
-#  stage: dev
-
-# you can define service wide environment variables here
-#  environment:
-#    variable1: value1
-
-# you can add packaging information here
 package:
   include:
     - lessons.json
-#    - include-me.js
-#    - include-me-dir/**
   exclude:
     - lessons.json
-#    - exclude-me-dir/**
 
 functions:
   read_lessons:
@@ -33,6 +39,36 @@ functions:
           method: get
           cors: true
 
+  read_path:
+    handler: lessons_handler.read_path
+    events:
+    - http:
+        path: /apprentice/{apprentices_id}/path
+        method: get
+        request:
+          parameters:
+            paths:
+              apprentices_id: true
+        cors: true
+
+resources:
+  Resources:
+    ApprenticesPathsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+        -
+          AttributeName: email
+          AttributeType: S
+        KeySchema:
+        -
+          AttributeName: email
+          KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
 
 custom:
   customDomain:
