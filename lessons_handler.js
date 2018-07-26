@@ -1,9 +1,32 @@
 "use strict";
-import AWS from "aws-sdk";
 import { lessons } from "./lessons";
+import dynogels from "dynogels";
+import Joi from "joi";
 
-const dynamoDb = new AWS.DynamoDB();
+dynogels.AWS.config.update({ region: "eu-west-2" });
 const APPRENTICES_TABLE = process.env.DYNAMODB_TABLE;
+
+const Lesson = Joi.object().keys({
+  description: Joi.string(),
+  id: Joi.number(),
+  language: Joi.string(),
+  outcomes: Joi.array().items(Joi.string()),
+  outputs: Joi.array().items(Joi.string()),
+  status: Joi.string().valid("none", "current", "todo", "done"),
+  subtitle: Joi.string(),
+  title: Joi.string()
+});
+
+const Path = Joi.object().keys({
+  email: Joi.string(),
+  path: Joi.array().items(Lesson)
+});
+
+const PathOfApprentice = dynogels.define("Path", {
+  hashKey: "email",
+  schema: Path,
+  tableName: APPRENTICES_TABLE
+});
 
 const all_lessons = (event, context, callback) => {
   const response = {
@@ -15,17 +38,6 @@ const all_lessons = (event, context, callback) => {
   };
 
   callback(null, response);
-};
-
-const where = ({ email }) => {
-  return {
-    Key: {
-      email: {
-        S: email
-      }
-    },
-    TableName: APPRENTICES_TABLE
-  };
 };
 
 const notFound = (apprentice, err) => {
@@ -41,11 +53,11 @@ const found = data => {
 
 const read_path = (event, context, callback) => {
   const apprentice = event.pathParameters.apprentices_id;
-  dynamoDb.getItem(where({ email: apprentice }), (err, data) => {
+  PathOfApprentice.get(apprentice, (err, path) => {
     if (err) {
       callback(null, notFound(apprentice, err));
     } else {
-      callback(null, found(data));
+      callback(null, found(path));
     }
   });
 };
