@@ -1,11 +1,9 @@
 'use strict'
+import AWS from "aws-sdk";
+import {lessons} from "./lessons";
 
-const AWS = require('aws-sdk')
 const dynamoDb = new AWS.DynamoDB();
-
 const APPRENTICES_TABLE = process.env.DYNAMODB_TABLE;
-
-const {lessons} = require('./lessons')
 
 const all_lessons = (event, context, callback) => {
     const response = {
@@ -32,17 +30,7 @@ const where = ({email}) => {
 
 const read_path = (event, context, callback) => {
     const apprentice = event.pathParameters.apprentices_id
-    console.log({apprentice})
-    console.log("TABLE: ", APPRENTICES_TABLE)
-    const params = {
-        Key: {
-            "email": {
-                S: apprentice
-            },
-        },
-        TableName: APPRENTICES_TABLE
-    };
-    dynamoDb.getItem(params, (err, data) => {
+    dynamoDb.getItem(where({email: apprentice}), (err, data) => {
         if (err) {
             callback(null, {statusCode: 404, body: `Did not find ${apprentice}: ${JSON.stringify(err)} `})
         } else {
@@ -52,6 +40,6 @@ const read_path = (event, context, callback) => {
 }
 
 module.exports = {
-    all_lessons: all_lessons,
-    read_path: read_path
+    all_lessons,
+    read_path
 }

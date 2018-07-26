@@ -4,10 +4,11 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 
 plugins:
   - serverless-domain-manager
+  - serverless-webpack
 
 provider:
   name: aws
-  runtime: nodejs6.10
+  runtime: nodejs8.10
   region: eu-west-2
   memorySize: 512
   timeout: 6
@@ -77,3 +78,7 @@ custom:
     basePath: ''
     stage: ${self:provider.stage}
     createRoute53Record: true
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    includeModules: true
+    packager: 'npm'
